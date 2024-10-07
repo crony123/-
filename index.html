@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>정밀 모니터링 시스템</title>
+    <style>
+        /* 페이지 전체 스타일 */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 40px;
+        }
+
+        /* 버튼 컨테이너 스타일 */
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* 버튼 스타일 */
+        .button {
+            position: relative;
+            display: inline-block;
+            width: 250px;
+            height: 150px;
+            margin: 10px;
+            padding: 15px;
+            background-color: #007BFF;
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-decoration: none;
+            overflow: hidden;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+
+        .button:active {
+            background-color: #00408d;
+            transform: scale(1);
+        }
+
+        /* 정보 섹션 스타일 */
+        .button .error {
+            position: absolute;
+            top: 10px;
+            left: 15px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .button .name {
+            position: absolute;
+            top: 50px;
+            left: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .button .address {
+            position: absolute;
+            top: 80px;
+            left: 15px;
+            font-size: 14px;
+        }
+
+        .button .coordinates {
+            position: absolute;
+            bottom: 10px;
+            left: 15px;
+            font-size: 16px;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .button {
+                width: 90%;
+                height: 180px;
+            }
+
+            .button .error {
+                font-size: 28px;
+            }
+
+            .button .name {
+                font-size: 20px;
+            }
+
+            .button .address {
+                font-size: 16px;
+            }
+
+            .button .coordinates {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>정밀 모니터링 시스템</h1>
+    <div class="button-container">
+        <!-- 버튼 예시: t123 16 -->
+        <a class="button" onclick="goToDetail('t123 16')">
+            <div class="error">오차: 5</div>
+            <div class="name">t123</div>
+            <div class="address">세종특별시 조치원읍</div>
+            <div class="coordinates">36.60354400, 127.29000817</div>
+        </a>
+
+        <!-- 버튼 예시: t2 21 -->
+        <a class="button" onclick="goToDetail('t2 21')">
+            <div class="error">오차: 3</div>
+            <div class="name">장비 B</div>
+            <div class="address">부산광역시 해운대구</div>
+            <div class="coordinates">35.16378900, 129.16305500</div>
+        </a>
+
+        <!-- 버튼 예시: l02 14 -->
+        <a class="button" onclick="goToDetail('l02 14')">
+            <div class="error">오차: 2</div>
+            <div class="name">장비 C</div>
+            <div class="address">대구광역시 중구</div>
+            <div class="coordinates">35.87222200, 128.60111100</div>
+        </a>
+
+        <!-- 버튼 예시: 버튼 4 -->
+        <a class="button" onclick="goToDetail('button4')">
+            <div class="error">오차: 4</div>
+            <div class="name">장비 D</div>
+            <div class="address">인천광역시 남동구</div>
+            <div class="coordinates">37.45666700, 126.70555600</div>
+        </a>
+    </div>
+
+    <script>
+        function goToDetail(buttonName) {
+            let roverID = '';
+            let dataType = '';
+            const limit = '20';
+
+            if (buttonName === 't123 16') {
+                // 버튼 1: 't123' 장치의 실시간 데이터
+                roverID = 't123';
+                dataType = '8';
+            } else if (buttonName === 't2 21') {
+                roverID = 't2';
+                dataType = '8';
+            } else if (buttonName === 'l02 14') {
+                roverID = 'l02';
+                dataType = '8';
+            } else if (buttonName === 'button4') {
+                roverID = 'button4'; // 실제 roverID를 할당하세요.
+                dataType = '8';
+            }
+
+            // manage_details.html로 파라미터 전달
+            const url = `manage_details.html?buttonName=${encodeURIComponent(buttonName)}&roverID=${encodeURIComponent(roverID)}&dataType=${encodeURIComponent(dataType)}&limit=${encodeURIComponent(limit)}`;
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>

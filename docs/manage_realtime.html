@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>실시간 데이터 확인</title>
+    <!-- 네이버 지도 API 스크립트 -->
+    <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId=YOUR_CLIENT_ID"></script>
+    <style>
+        /* 페이지 전체 스타일 */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 지도 스타일 */
+        #map {
+            width: 100%;
+            height: 500px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        /* 테이블 스타일 */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-size: 16px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        /* 버튼 스타일 */
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            margin-top: 10px;
+            font-size: 18px;
+            color: #fff;
+            background-color: #007BFF;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #0056b3;
+        }
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            #map {
+                height: 300px;
+            }
+
+            th, td {
+                padding: 8px;
+                font-size: 12px;
+            }
+
+            h1 {
+                font-size: 24px;
+            }
+
+            .button {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>실시간 데이터 확인</h1>
+    <div id="map"></div>
+    <div id="dataDisplay"></div>
+    <a id="backButton" href="#" class="button">상세 정보로 돌아가기</a>
+
+    <script>
+        // URL에서 파라미터 추출 함수
+        function getQueryParams() {
+            const params = {};
+            const queryString = window.location.search.slice(1);
+            const pairs = queryString.split('&');
+            for (let i = 0; i < pairs.length; i++) {
+                const pair = pairs[i].split('=');
+                params[decodeURIComponent(pair[0])] = pair[1] ? decodeURIComponent(pair[1]).replace(/\+/g, ' ') : '';
+            }
+            return params;
+        }
+
+        // URL 파라미터 가져오기
+        const params = getQueryParams();
+        const buttonName = params['buttonName'] || '실시간 데이터';
+        const roverID = params['roverID'] || '';
+        const dataType = params['dataType'] || '';
+        const limit = params['limit'] || '20';
+
+        // "상세 정보로 돌아가기" 버튼 링크 설정
+        const backButton = document.getElementById('backButton');
+        backButton.href = `manage_details.html?buttonName=${encodeURIComponent(buttonName)}&roverID=${encodeURIComponent(roverID)}&dataType=${encodeURIComponent(dataType)}&limit=${encodeURIComponent(limit)}`;
+
+        // fixQuality 값을 텍스트로 변환하는 함수
+        function getFixQualityText(fixQuality) {
+            if (fixQuality === null || fixQuality === undefined) {
+                return 'Unknown';
+            }
+            switch(fixQuality.toString()) {
+                case '1':
+                    return 'GPS';
+                case '2':
+                    return 'GNSS';
+                case '3':
+                    return 'Fix';
+                default:
+                    return 'Unknown';
+            }
+        }
+
+        // 네이버 지도 초기화
+        let map;
+        let markers = [];
+
+        function initMap() {
+            map = new naver.maps.Map('map', {
+                center: new naver.maps.LatLng(36.60351133, 127.29003217), // 기본 원점 좌표
+                zoom: 14
+            });
+        }
+
+        // 데이터 가져오기 함수
+        function fetchData() {
+            if (roverID === '') {
+                document.getElementById('dataDisplay').innerHTML = `<p>장비 ID가 지정되지 않았습니다.</p>`;
+                return;
+            }
+
+            // API URL 구성
+            const apiUrl = `https://gsptechgnss.cafe24.com/process/get_hongik_data.php?` +
+                `roverID=${encodeURIComponent(roverID)}&dataType=${encodeURIComponent(dataType)}&limit=${encodeURIComponent(limit)}`;
+
+            fetch(apiUrl)
+                .then(response => response.text())
+                .then(text => {
+                    // 응답 텍스트에서 앞뒤의 소괄호 제거 (필요 시)
+                    const jsonText = text.trim().replace(/^\(/, '').replace(/\)$/, '');
+                    let data;
+                    try {
+                        data = JSON.parse(jsonText);
+                    } catch (e) {
+                        console.error('JSON 파싱 오류:', e);
+                        document.getElementById('dataDisplay').innerHTML = `<p>데이터 형식 오류가 발생했습니다.</p>`;
+                        return;
+                    }
+
+                    const dataDisplay = document.getElementById('dataDisplay');
+                    dataDisplay.innerHTML = `<h2>${buttonName}의 실시간 데이터</h2>`;
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        let dataArray = data.data;
+
+                        // 데이터 정렬 (가장 최신 정보가 위로 오도록)
+                        dataArray.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+                        // 지도 마커 초기화
+                        clearMarkers();
+
+                        // 테이블 생성
+                        let tableHTML = '<table><tr>' +
+                                        '<th>No</th>' +
+                                        '<th>ID</th>' +
+                                        '<th>GNSS Lat</th>' +
+                                        '<th>GNSS Lon</th>' +
+                                        '<th>RTK Lat</th>' +
+                                        '<th>RTK Lon</th>' +
+                                        '<th>GNSS 상태</th>' +
+                                        '<th>데이터 입력 시간</th>' +
+                                        '<th>장소</th>' +
+                                        '</tr>';
+
+                        dataArray.forEach((item, index) => {
+                            const gnssLat = item.gnssLat || 'N/A'; // 문자열 그대로 사용, null일 경우 'N/A'
+                            const gnssLon = item.gnssLon || 'N/A';
+                            const rtkLat = item.rtkLat || 'N/A';
+                            const rtkLon = item.rtkLon || 'N/A';
+                            const createdAt = item.created_at || 'N/A';
+                            const location = item.location || 'GSPtech';
+                            const fixQuality = getFixQualityText(item.fixQuality);
+
+                            tableHTML += `<tr>
+                                <td>${index + 1}</td>
+                                <td>${item.id || 'N/A'}</td>
+                                <td>${gnssLat}</td> 
+                                <td>${gnssLon}</td> 
+                                <td>${rtkLat}</td>
+                                <td>${rtkLon}</td>
+                                <td>${fixQuality}</td>
+                                <td>${createdAt}</td>
+                                <td>${location}</td> 
+                            </tr>`;
+
+                            // 지도에 GNSS 위치 마커 추가
+                            if (gnssLat !== 'N/A' && gnssLon !== 'N/A') {
+                                const marker = new naver.maps.Marker({
+                                    position: new naver.maps.LatLng(parseFloat(gnssLat), parseFloat(gnssLon)),
+                                    map: map,
+                                    title: `GNSS ID: ${item.id || 'Unknown'}`
+                                });
+                                markers.push(marker);
+                            }
+
+                            // 지도에 RTK 위치 마커 추가
+                            if (rtkLat !== 'N/A' && rtkLon !== 'N/A') {
+                                const marker = new naver.maps.Marker({
+                                    position: new naver.maps.LatLng(parseFloat(rtkLat), parseFloat(rtkLon)),
+                                    map: map,
+                                    icon: {
+                                        content: '<div style="width:16px;height:16px;background-color:#ff0000;border-radius:50%;"></div>'
+                                    },
+                                    title: `RTK ID: ${item.id || 'Unknown'}`
+                                });
+                                markers.push(marker);
+                            }
+                        });
+
+                        tableHTML += '</table>';
+                        dataDisplay.innerHTML += tableHTML;
+
+                        // 지도 중심을 최신 데이터로 이동
+                        const latestData = dataArray[0];
+                        if (latestData.gnssLat && latestData.gnssLon) {
+                            map.setCenter(new naver.maps.LatLng(parseFloat(latestData.gnssLat), parseFloat(latestData.gnssLon)));
+                        }
+                    } else {
+                        // 데이터가 없을 경우 메시지 표시
+                        dataDisplay.innerHTML += `<p>가져올 데이터가 없습니다.</p>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('데이터 가져오기 오류:', error);
+                    const dataDisplay = document.getElementById('dataDisplay');
+                    dataDisplay.innerHTML += `<p>데이터 가져오기 중 오류가 발생했습니다: ${error.message}</p>`;
+                });
+        }
+
+        // 마커 초기화 함수
+        function clearMarkers() {
+            for (let i = 0; i < markers.length; i++) {
+                markers[i].setMap(null);
+            }
+            markers = [];
+        }
+
+        // 페이지 로드 시 지도 초기화 및 데이터 가져오기
+        window.onload = function() {
+            initMap();
+            fetchData();
+            // 5초마다 데이터 갱신
+            setInterval(fetchData, 5000); // 5000ms = 5초
+        };
+    </script>
+</body>
+</html>

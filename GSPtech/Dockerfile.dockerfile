@@ -1,6 +1,6 @@
 FROM nginx:alpine
 
-COPY default.conf /etc/nginx/conf.d/default.conf
+COPY default.conf gsp/GSPtech/default.conf
 COPY . /usr/share/nginx/html
 
 # 파일 권한 설정

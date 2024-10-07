@@ -1,8 +1,11 @@
 FROM nginx:alpine
 
+COPY default.conf /etc/nginx/conf.d/default.conf
 COPY . /usr/share/nginx/html
+
+# 파일 권한 설정
+RUN chmod -R 755 /usr/share/nginx/html
 
 EXPOSE 80
 
-# Nginx를 포어그라운드 모드로 실행
 CMD ["nginx", "-g", "daemon off;"]
